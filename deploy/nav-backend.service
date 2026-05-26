@@ -1,0 +1,16 @@
+[Unit]
+Description=Nav Site Backend (Node.js)
+After=network.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/opt/nav-site
+ExecStart=/usr/bin/node /opt/nav-site/server/index.js
+Restart=on-failure
+RestartSec=10
+Environment=NODE_ENV=production
+Environment=PORT=3001
+
+[Install]
+WantedBy=multi-user.target
