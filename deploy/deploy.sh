@@ -11,7 +11,7 @@ echo "========================================="
 # 配置变量
 APP_DIR="/opt/nav-site"
 REPO_URL="https://github.com/gengmu5588-ship-it/Frog-Fun-Navigation-Website.git"
-DOMAIN="nav.yourdomain.com"  # 替换为你的子域名
+DOMAIN="tbaosearch.asia"  # 替换为你的子域名
 
 # 1. 安装依赖
 echo "[1/6] 安装系统依赖..."
