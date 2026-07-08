@@ -29,6 +29,10 @@ if ! command -v git &> /dev/null; then
     apt-get install -y git
 fi
 
+# 安装 better-sqlite3 编译依赖
+echo "[1/6] 安装编译依赖..."
+apt-get install -y build-essential python3
+
 # 2. 拉取代码
 echo "[2/6] 拉取代码..."
 if [ -d "$APP_DIR" ]; then
@@ -47,15 +51,20 @@ npm install
 echo "[4/6] 构建前端..."
 npx vite build
 
-# 5. 配置 systemd 服务
-echo "[5/6] 配置后端服务..."
+# 5. 设置权限
+echo "[5/8] 设置文件权限..."
+chown -R www-data:www-data $APP_DIR
+mkdir -p $APP_DIR/server/data
+
+# 6. 配置 systemd 服务
+echo "[6/8] 配置后端服务..."
 cp deploy/nav-backend.service /etc/systemd/system/
 systemctl daemon-reload
 systemctl enable nav-backend
 systemctl restart nav-backend
 
-# 6. 配置 Nginx
-echo "[6/6] 配置 Nginx..."
+# 7. 配置 Nginx
+echo "[7/8] 配置 Nginx..."
 cp deploy/nginx.conf /etc/nginx/sites-available/nav
 # 替换域名为实际域名
 sed -i "s/nav.yourdomain.com/$DOMAIN/g" /etc/nginx/sites-available/nav
@@ -70,6 +79,11 @@ nginx -t
 
 # 重载 Nginx
 systemctl reload nginx
+
+# 8. 等待服务启动并验证
+echo "[8/8] 验证部署..."
+sleep 3
+curl -s http://localhost:3001/api/nav-data | head -c 100
 
 echo ""
 echo "========================================="
