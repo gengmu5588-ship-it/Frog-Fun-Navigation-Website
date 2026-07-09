@@ -50,6 +50,10 @@ const activeMenu = computed(() => route.path)
 
 <style scoped>
 .admin-layout {
+  min-height: 100vh;
+}
+
+:deep(.el-container) {
   height: 100vh;
 }
 
@@ -91,6 +95,8 @@ const activeMenu = computed(() => route.path)
 .admin-main {
   background: #f0f2f5;
   padding: 24px;
+  overflow-y: auto;
+  height: 100%;
 }
 
 :deep(.el-menu) {

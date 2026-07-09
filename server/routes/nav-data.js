@@ -20,7 +20,7 @@ router.get('/', (req, res) => {
   })
 
   res.json({
-    config: { title: '聚合导航' },
+    config: { title: '视觉志·导航网' },
     categories: result
   })
 })
