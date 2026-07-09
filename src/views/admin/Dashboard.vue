@@ -58,13 +58,17 @@ onMounted(async () => {
       getSubcategories(),
       getAllLinks()
     ])
+    const catData = Array.isArray(catRes.data) ? catRes.data : []
+    const subData = Array.isArray(subRes.data) ? subRes.data : []
+    const linkData = Array.isArray(linkRes.data) ? linkRes.data : []
     stats.value = {
-      categories: catRes.data.length,
-      subcategories: subRes.data.length,
-      links: linkRes.data.length
+      categories: catData.length,
+      subcategories: subData.length,
+      links: linkData.length
     }
   } catch (e) {
     console.error(e)
+    stats.value = { categories: 0, subcategories: 0, links: 0 }
   }
 })
 </script>

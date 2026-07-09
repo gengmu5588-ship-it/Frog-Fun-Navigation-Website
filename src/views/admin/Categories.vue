@@ -66,21 +66,32 @@ function openDialog(row) {
 }
 
 async function loadList() {
-  const { data } = await getCategories()
-  list.value = data
+  try {
+    const { data } = await getCategories()
+    list.value = Array.isArray(data) ? data : []
+  } catch (e) {
+    console.error(e)
+    list.value = []
+    ElMessage.error('加载数据失败')
+  }
 }
 
 async function handleSave() {
   if (!form.value.name) return ElMessage.warning('请输入分类名称')
-  if (editingId.value) {
-    await updateCategory(editingId.value, form.value)
-    ElMessage.success('更新成功')
-  } else {
-    await createCategory(form.value)
-    ElMessage.success('创建成功')
+  try {
+    if (editingId.value) {
+      await updateCategory(editingId.value, form.value)
+      ElMessage.success('更新成功')
+    } else {
+      await createCategory(form.value)
+      ElMessage.success('创建成功')
+    }
+    dialogVisible.value = false
+    loadList()
+  } catch (e) {
+    console.error(e)
+    ElMessage.error('保存失败，请检查网络连接')
   }
-  dialogVisible.value = false
-  loadList()
 }
 
 async function handleDelete(id) {
