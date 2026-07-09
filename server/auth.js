@@ -64,9 +64,12 @@ export function createAuthRouter(db) {
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
   )`)
 
-  // 初始化默认管理员
-  const count = db.prepare('SELECT COUNT(*) as cnt FROM admin_users').get()
-  if (count.cnt === 0) {
+  // 初始化默认管理员（如果不存在则创建，存在则更新密码）
+  const existing = db.prepare('SELECT id FROM admin_users WHERE username = ?').get(DEFAULT_ADMIN.username)
+  if (existing) {
+    // 更新密码为最新配置
+    db.prepare('UPDATE admin_users SET password_hash = ? WHERE username = ?').run(DEFAULT_ADMIN.passwordHash, DEFAULT_ADMIN.username)
+  } else {
     db.prepare('INSERT INTO admin_users (username, password_hash) VALUES (?, ?)').run(DEFAULT_ADMIN.username, DEFAULT_ADMIN.passwordHash)
   }
 
