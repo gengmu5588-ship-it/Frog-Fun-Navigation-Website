@@ -6,7 +6,7 @@ const TOKEN_EXPIRES = 24 * 60 * 60 * 1000 // 24小时
 
 const DEFAULT_ADMIN = {
   username: 'admin',
-  passwordHash: hashPassword('admin123')
+  passwordHash: hashPassword('jm407351242')
 }
 
 function hashPassword(password) {
