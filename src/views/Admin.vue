@@ -30,7 +30,13 @@
           </el-menu-item>
         </el-menu>
         <div class="aside-footer">
-          <a href="/" target="_blank">查看前台</a>
+          <div class="admin-user" v-if="username">
+            <span>{{ username }}</span>
+          </div>
+          <div class="aside-actions">
+            <a href="/" target="_blank">查看前台</a>
+            <a href="javascript:;" @click="handleLogout">退出登录</a>
+          </div>
         </div>
       </el-aside>
       <el-main class="admin-main">
@@ -42,10 +48,20 @@
 
 <script setup>
 import { computed } from 'vue'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
+import { ElMessage } from 'element-plus'
 
 const route = useRoute()
+const router = useRouter()
 const activeMenu = computed(() => route.path)
+const username = computed(() => localStorage.getItem('admin_username') || '')
+
+function handleLogout() {
+  localStorage.removeItem('admin_token')
+  localStorage.removeItem('admin_username')
+  ElMessage.success('已退出登录')
+  router.push('/admin/login')
+}
 </script>
 
 <style scoped>
@@ -78,17 +94,29 @@ const activeMenu = computed(() => route.path)
 .aside-footer {
   margin-top: auto;
   padding: 16px;
-  text-align: center;
   border-top: 1px solid rgba(255,255,255,0.05);
 }
 
-.aside-footer a {
+.admin-user {
+  text-align: center;
+  color: #a0a4b8;
+  font-size: 13px;
+  margin-bottom: 8px;
+}
+
+.aside-actions {
+  display: flex;
+  justify-content: center;
+  gap: 16px;
+}
+
+.aside-actions a {
   color: #a0a4b8;
   text-decoration: none;
   font-size: 13px;
 }
 
-.aside-footer a:hover {
+.aside-actions a:hover {
   color: #667eea;
 }
 

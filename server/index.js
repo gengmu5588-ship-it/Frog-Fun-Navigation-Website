@@ -7,6 +7,7 @@ import categoriesRouter from './routes/categories.js'
 import subcategoriesRouter from './routes/subcategories.js'
 import linksRouter from './routes/links.js'
 import navDataRouter from './routes/nav-data.js'
+import { createAuthRouter, authMiddleware } from './auth.js'
 import { initDB } from './db.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
@@ -24,7 +25,13 @@ initDB(db)
 // 将 db 实例挂到 app 上
 app.set('db', db)
 
-// 路由
+// 认证路由（不需要token验证）
+app.use('/api/auth', createAuthRouter(db))
+
+// 写操作token验证中间件
+app.use(authMiddleware)
+
+// 业务路由
 app.use('/api/categories', categoriesRouter)
 app.use('/api/subcategories', subcategoriesRouter)
 app.use('/api/links', linksRouter)
