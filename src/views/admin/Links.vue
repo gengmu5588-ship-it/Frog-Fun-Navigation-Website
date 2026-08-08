@@ -67,7 +67,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { getCategories, getSubcategories, getLinks, getAllLinks, createLink, updateLink, deleteLink } from '../../api'
+import { getCategories, getSubcategories, getAllLinks, createLink, updateLink, deleteLink } from '../../api'
 
 const list = ref([])
 const categories = ref([])
@@ -108,10 +108,16 @@ function onFilterCategory() {
 
 async function loadList() {
   try {
-    const params = {}
-    if (filterSub.value) params.subcategoryId = filterSub.value
-    const { data } = filterSub.value ? await getLinks(filterSub.value) : await getAllLinks()
-    list.value = Array.isArray(data) ? data : []
+    const { data } = await getAllLinks()
+    let arr = Array.isArray(data) ? data : []
+    // 本地按分类+子分类过滤（getAllLinks 已返回 category_id）
+    if (filterCategory.value) {
+      arr = arr.filter(l => l.category_id === filterCategory.value)
+    }
+    if (filterSub.value) {
+      arr = arr.filter(l => l.subcategory_id === filterSub.value)
+    }
+    list.value = arr
   } catch (e) {
     console.error(e)
     list.value = []
