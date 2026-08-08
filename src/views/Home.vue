@@ -194,7 +194,7 @@ function goHome() {
   activeCategory.value = 'home'
   isProgrammaticScroll.value = true
   window.scrollTo({ top: 0, behavior: 'smooth' })
-  setTimeout(() => { isProgrammaticScroll.value = false }, 500)
+  setTimeout(() => { isProgrammaticScroll.value = false }, 1000)
   if (isMobile.value) mobileMenuOpen.value = false
 }
 
@@ -205,7 +205,7 @@ function scrollToCategory(catId) {
   if (el) {
     isProgrammaticScroll.value = true
     el.scrollIntoView({ behavior: 'smooth', block: 'start' })
-    setTimeout(() => { isProgrammaticScroll.value = false }, 700)
+    setTimeout(() => { isProgrammaticScroll.value = false }, 1500)
   }
   if (isMobile.value) mobileMenuOpen.value = false
 }
