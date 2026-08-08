@@ -111,51 +111,30 @@
             :key="cat.id"
             :id="`cat-section-${cat.id}`"
             class="cat-section"
+            :class="{ expanded: isSectionExpanded(cat.id) }"
           >
-            <div class="cat-section-header">
+            <div class="cat-section-header" @click="scrollToCategory(cat.id)">
               <span class="cat-section-icon">{{ cat.icon }}</span>
               <span class="cat-section-name">{{ cat.name }}</span>
               <span class="cat-section-count" v-if="cat.allLinks.length">{{ cat.allLinks.length }} 个</span>
+              <span
+                v-if="cat.subcategories?.length >= 1"
+                class="sec-expand-arrow"
+                :class="{ expanded: isSectionExpanded(cat.id) }"
+              >›</span>
             </div>
 
-            <!-- 只有一个子分类：直接平铺 -->
-            <div
-              v-if="cat.subcategories.length <= 1"
-              class="links-grid"
-              v-show="cat.allLinks.length"
-            >
-              <a
-                v-for="link in cat.allLinks"
-                :key="link.id"
-                :href="link.url"
-                target="_blank"
-                rel="noopener noreferrer"
-                class="link-card"
-              >
-                <div class="link-icon">
-                  <img v-if="link.icon" :src="link.icon" :alt="link.title" @error="handleIconError" />
-                  <span v-else class="default-icon">{{ link.title?.charAt(0) }}</span>
-                </div>
-                <div class="link-info">
-                  <div class="link-title">{{ link.title }}</div>
-                  <div class="link-desc">{{ link.description }}</div>
-                </div>
-              </a>
-            </div>
-
-            <!-- 多个子分类：按子分类分组 -->
-            <template v-else>
-              <div
-                v-for="sub in cat.subcategories"
-                :key="sub.id"
-                :id="`sub-section-${sub.id}`"
-                class="sub-group"
-                v-show="sub.links && sub.links.length"
-              >
-                <div class="sub-group-title">{{ sub.name }}</div>
-                <div class="links-grid" v-if="sub.links && sub.links.length">
+            <!-- 内容体：Accordion 展开/收起 -->
+            <transition name="sec-slide">
+              <div v-if="isSectionExpanded(cat.id)" class="cat-section-body">
+                <!-- 只有一个子分类：直接平铺 -->
+                <div
+                  v-if="cat.subcategories.length <= 1"
+                  class="links-grid"
+                  v-show="cat.allLinks.length"
+                >
                   <a
-                    v-for="link in sub.links"
+                    v-for="link in cat.allLinks"
                     :key="link.id"
                     :href="link.url"
                     target="_blank"
@@ -172,10 +151,52 @@
                     </div>
                   </a>
                 </div>
-              </div>
-            </template>
 
-            <div v-if="!cat.allLinks.length" class="empty-state empty-in-section">暂无链接</div>
+                <!-- 多个子分类：按子分类分组 + 子级 Accordion -->
+                <template v-else>
+                  <div
+                    v-for="sub in cat.subcategories"
+                    :key="sub.id"
+                    :id="`sub-section-${sub.id}`"
+                    class="sub-group"
+                    :class="{ expanded: isSubExpanded(cat.id, sub.id) }"
+                    v-show="sub.links && sub.links.length"
+                  >
+                    <div class="sub-group-title" @click.stop="scrollToSubcategory(cat.id, sub.id)">
+                      <span
+                        v-if="true"
+                        class="sub-expand-arrow"
+                        :class="{ expanded: isSubExpanded(cat.id, sub.id) }"
+                      >›</span>
+                      {{ sub.name }}
+                    </div>
+                    <transition name="sec-slide">
+                      <div class="links-grid" v-if="isSubExpanded(cat.id, sub.id) && sub.links && sub.links.length">
+                        <a
+                          v-for="link in sub.links"
+                          :key="link.id"
+                          :href="link.url"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          class="link-card"
+                        >
+                          <div class="link-icon">
+                            <img v-if="link.icon" :src="link.icon" :alt="link.title" @error="handleIconError" />
+                            <span v-else class="default-icon">{{ link.title?.charAt(0) }}</span>
+                          </div>
+                          <div class="link-info">
+                            <div class="link-title">{{ link.title }}</div>
+                            <div class="link-desc">{{ link.description }}</div>
+                          </div>
+                        </a>
+                      </div>
+                    </transition>
+                  </div>
+                </template>
+
+                <div v-if="!cat.allLinks.length" class="empty-state empty-in-section">暂无链接</div>
+              </div>
+            </transition>
           </div>
         </template>
       </main>
@@ -227,6 +248,21 @@ const currentCategoryName = computed(() => {
   const cat = categories.value.find(c => c.id === activeCategory.value)
   return cat ? cat.name : ''
 })
+
+// Accordion：分类区块是否展开（首页全部展开；否则仅当前激活分类展开）
+function isSectionExpanded(catId) {
+  if (activeCategory.value === 'home') return true
+  return activeCategory.value === catId
+}
+
+// Accordion：子分组是否展开（首页/无子分类激活 时全部展开；否则仅激活子分类展开）
+function isSubExpanded(catId, subId) {
+  // 不在当前激活分类的子分组：自然跟随父 section 收起，这里返回 true 以兼容父 section 展开时子分组内容
+  if (activeCategory.value === 'home') return true
+  if (activeCategory.value !== catId) return false
+  if (!activeSubcategory.value) return true
+  return activeSubcategory.value === subId
+}
 
 // 回到首页（全部视图顶部）
 function goHome() {
@@ -728,7 +764,7 @@ onUnmounted(() => {
 
 /* 分类区块 */
 .cat-section {
-  margin-bottom: 24px;
+  margin-bottom: 14px;
   scroll-margin-top: 72px;
 }
 
@@ -736,13 +772,25 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 8px 12px;
-  margin-bottom: 12px;
+  padding: 10px 14px;
+  margin-bottom: 0;
   background: var(--bg-surface);
   border-radius: 8px;
   border: 1px solid var(--border);
   border-left: 3px solid var(--accent);
-  transition: background 0.3s;
+  transition: background 0.3s, border-color 0.3s;
+  cursor: pointer;
+}
+
+.cat-section-header:hover {
+  background: var(--bg-hover);
+}
+
+.cat-section.expanded .cat-section-header {
+  border-bottom-left-radius: 0;
+  border-bottom-right-radius: 0;
+  border-bottom-color: transparent;
+  background: var(--bg-active);
 }
 
 .cat-section-icon {
@@ -761,20 +809,97 @@ onUnmounted(() => {
   color: var(--text-muted);
 }
 
+/* 区块展开箭头 */
+.sec-expand-arrow {
+  font-size: 15px;
+  color: var(--text-muted);
+  transition: transform 0.25s ease;
+  transform: rotate(0deg);
+  line-height: 1;
+  margin-left: 4px;
+}
+
+.sec-expand-arrow.expanded {
+  transform: rotate(90deg);
+  color: var(--accent);
+}
+
+/* 区块内容体 */
+.cat-section-body {
+  padding: 16px 16px 8px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-top: none;
+  border-radius: 0 0 8px 8px;
+  border-left: 3px solid var(--accent);
+}
+
 /* 子分类分组 */
 .sub-group {
-  margin-bottom: 16px;
+  margin-bottom: 12px;
+  padding-left: 10px;
 }
 
 .sub-group-title {
   font-size: 13px;
   font-weight: 500;
   color: var(--text-base);
-  padding: 4px 4px 8px;
+  padding: 6px 10px;
+  border-radius: 6px;
   border-left: 2px solid var(--border);
-  padding-left: 8px;
-  margin-left: 4px;
   margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.sub-group-title:hover {
+  background: var(--bg-hover);
+  color: var(--text-strong);
+}
+
+.sub-group.expanded .sub-group-title {
+  background: var(--bg-active);
+  border-left-color: var(--accent);
+  color: var(--accent);
+}
+
+.sub-expand-arrow {
+  font-size: 14px;
+  color: var(--text-muted);
+  transition: transform 0.25s ease;
+  transform: rotate(0deg);
+  line-height: 1;
+  flex-shrink: 0;
+}
+
+.sub-expand-arrow.expanded {
+  transform: rotate(90deg);
+  color: var(--accent);
+}
+
+/* Accordion 展开/收起动画 */
+.sec-slide-enter-active,
+.sec-slide-leave-active {
+  transition: all 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+  overflow: hidden;
+}
+
+.sec-slide-enter-from,
+.sec-slide-leave-to {
+  opacity: 0;
+  max-height: 0;
+  margin-top: 0;
+  padding-top: 0;
+  padding-bottom: 0;
+}
+
+.sec-slide-enter-to,
+.sec-slide-leave-from {
+  opacity: 1;
+  max-height: 4000px;
 }
 
 /* 链接卡片网格 */
