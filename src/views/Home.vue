@@ -152,45 +152,37 @@
                   </a>
                 </div>
 
-                <!-- 多个子分类：按子分类分组 + 子级 Accordion -->
+                <!-- 多个子分类：按子分类分组（激活分类的子分组全部展开） -->
                 <template v-else>
                   <div
                     v-for="sub in cat.subcategories"
                     :key="sub.id"
                     :id="`sub-section-${sub.id}`"
                     class="sub-group"
-                    :class="{ expanded: isSubExpanded(cat.id, sub.id) }"
                     v-show="sub.links && sub.links.length"
                   >
                     <div class="sub-group-title" @click.stop="scrollToSubcategory(cat.id, sub.id)">
-                      <span
-                        v-if="true"
-                        class="sub-expand-arrow"
-                        :class="{ expanded: isSubExpanded(cat.id, sub.id) }"
-                      >›</span>
                       {{ sub.name }}
                     </div>
-                    <transition name="sec-slide">
-                      <div class="links-grid" v-if="isSubExpanded(cat.id, sub.id) && sub.links && sub.links.length">
-                        <a
-                          v-for="link in sub.links"
-                          :key="link.id"
-                          :href="link.url"
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          class="link-card"
-                        >
-                          <div class="link-icon">
-                            <img v-if="link.icon" :src="link.icon" :alt="link.title" @error="handleIconError" />
-                            <span v-else class="default-icon">{{ link.title?.charAt(0) }}</span>
-                          </div>
-                          <div class="link-info">
-                            <div class="link-title">{{ link.title }}</div>
-                            <div class="link-desc">{{ link.description }}</div>
-                          </div>
-                        </a>
-                      </div>
-                    </transition>
+                    <div class="links-grid" v-if="sub.links && sub.links.length">
+                      <a
+                        v-for="link in sub.links"
+                        :key="link.id"
+                        :href="link.url"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        class="link-card"
+                      >
+                        <div class="link-icon">
+                          <img v-if="link.icon" :src="link.icon" :alt="link.title" @error="handleIconError" />
+                          <span v-else class="default-icon">{{ link.title?.charAt(0) }}</span>
+                        </div>
+                        <div class="link-info">
+                          <div class="link-title">{{ link.title }}</div>
+                          <div class="link-desc">{{ link.description }}</div>
+                        </div>
+                      </a>
+                    </div>
                   </div>
                 </template>
 
@@ -255,15 +247,6 @@ function isSectionExpanded(catId) {
   return activeCategory.value === catId
 }
 
-// Accordion：子分组是否展开（首页/无子分类激活 时全部展开；否则仅激活子分类展开）
-function isSubExpanded(catId, subId) {
-  // 不在当前激活分类的子分组：自然跟随父 section 收起，这里返回 true 以兼容父 section 展开时子分组内容
-  if (activeCategory.value === 'home') return true
-  if (activeCategory.value !== catId) return false
-  if (!activeSubcategory.value) return true
-  return activeSubcategory.value === subId
-}
-
 // 回到首页（全部视图顶部）
 function goHome() {
   activeCategory.value = 'home'
@@ -298,13 +281,20 @@ function scrollToSubcategory(catId, subId) {
   if (isMobile.value) mobileMenuOpen.value = false
 }
 
+// reflow 锁：分类切换后短暂锁定 scroll-spy，防止内容重排触发滚动反馈循环
+let reflowLock = false
+
 // 滚动监听：自动高亮当前所属分类与子分类（基于视口位置）
 function onScroll() {
-  if (isProgrammaticScroll.value) return
+  if (isProgrammaticScroll.value || reflowLock) return
   // 接近顶部时高亮"首页"
   if (window.scrollY < 40) {
-    activeCategory.value = 'home'
-    activeSubcategory.value = null
+    if (activeCategory.value !== 'home') {
+      activeCategory.value = 'home'
+      activeSubcategory.value = null
+      reflowLock = true
+      setTimeout(() => { reflowLock = false }, 350)
+    }
     return
   }
   const offset = 90 // 顶部 header(56) + 间距
@@ -335,8 +325,14 @@ function onScroll() {
       break
     }
   }
+  const catChanged = activeCategory.value !== current
   activeCategory.value = current
   activeSubcategory.value = currentSub
+  // 分类切换时锁定 scroll-spy，等待 Accordion 过渡完成（防止 reflow 反馈循环）
+  if (catChanged) {
+    reflowLock = true
+    setTimeout(() => { reflowLock = false }, 350)
+  }
 }
 
 function handleIconError(e) {
@@ -848,9 +844,6 @@ onUnmounted(() => {
   border-radius: 6px;
   border-left: 2px solid var(--border);
   margin-bottom: 8px;
-  display: flex;
-  align-items: center;
-  gap: 6px;
   cursor: pointer;
   transition: all 0.2s;
 }
@@ -858,26 +851,6 @@ onUnmounted(() => {
 .sub-group-title:hover {
   background: var(--bg-hover);
   color: var(--text-strong);
-}
-
-.sub-group.expanded .sub-group-title {
-  background: var(--bg-active);
-  border-left-color: var(--accent);
-  color: var(--accent);
-}
-
-.sub-expand-arrow {
-  font-size: 14px;
-  color: var(--text-muted);
-  transition: transform 0.25s ease;
-  transform: rotate(0deg);
-  line-height: 1;
-  flex-shrink: 0;
-}
-
-.sub-expand-arrow.expanded {
-  transform: rotate(90deg);
-  color: var(--accent);
 }
 
 /* Accordion 展开/收起动画 */
