@@ -783,10 +783,14 @@ onUnmounted(() => {
 }
 
 .cat-section.expanded .cat-section-header {
+  position: sticky;
+  top: 56px;
+  z-index: 50;
   border-bottom-left-radius: 0;
   border-bottom-right-radius: 0;
   border-bottom-color: transparent;
   background: var(--bg-active);
+  box-shadow: 0 2px 8px var(--shadow);
 }
 
 .cat-section-icon {
