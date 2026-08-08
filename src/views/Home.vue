@@ -75,7 +75,7 @@
       </header>
 
       <!-- 全部链接视图（按分类分区） -->
-      <main class="content-body" ref="contentBodyRef" @scroll="onScroll">
+      <main class="content-body">
         <div v-if="!categoriesWithLinks.length" class="empty-state">暂无数据</div>
 
         <template v-else>
@@ -171,7 +171,6 @@ const activeCategory = ref('home')
 const sidebarCollapsed = ref(false)
 const mobileMenuOpen = ref(false)
 const isMobile = ref(false)
-const contentBodyRef = ref(null)
 // 标记程序触发的滚动，避免 scroll-spy 抢占
 const isProgrammaticScroll = ref(false)
 
@@ -193,11 +192,9 @@ const currentCategoryName = computed(() => {
 // 回到首页（全部视图顶部）
 function goHome() {
   activeCategory.value = 'home'
-  if (contentBodyRef.value) {
-    isProgrammaticScroll.value = true
-    contentBodyRef.value.scrollTo({ top: 0, behavior: 'smooth' })
-    setTimeout(() => { isProgrammaticScroll.value = false }, 500)
-  }
+  isProgrammaticScroll.value = true
+  window.scrollTo({ top: 0, behavior: 'smooth' })
+  setTimeout(() => { isProgrammaticScroll.value = false }, 500)
   if (isMobile.value) mobileMenuOpen.value = false
 }
 
@@ -205,32 +202,30 @@ function goHome() {
 function scrollToCategory(catId) {
   activeCategory.value = catId
   const el = document.getElementById(`cat-section-${catId}`)
-  if (el && contentBodyRef.value) {
+  if (el) {
     isProgrammaticScroll.value = true
-    const top = el.offsetTop - 16
-    contentBodyRef.value.scrollTo({ top, behavior: 'smooth' })
-    setTimeout(() => { isProgrammaticScroll.value = false }, 600)
+    el.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    setTimeout(() => { isProgrammaticScroll.value = false }, 700)
   }
   if (isMobile.value) mobileMenuOpen.value = false
 }
 
-// 滚动监听：自动高亮当前所属分类
+// 滚动监听：自动高亮当前所属分类（基于视口位置）
 function onScroll() {
   if (isProgrammaticScroll.value) return
-  const container = contentBodyRef.value
-  if (!container) return
-  const scrollTop = container.scrollTop
   // 接近顶部时高亮"首页"
-  if (scrollTop < 40) {
+  if (window.scrollY < 40) {
     activeCategory.value = 'home'
     return
   }
-  const offset = 80
+  const offset = 90 // 顶部 header(56) + 间距
   let current = 'home'
   for (const cat of categoriesWithLinks.value) {
     const el = document.getElementById(`cat-section-${cat.id}`)
     if (!el) continue
-    if (el.offsetTop - offset <= scrollTop) {
+    const rect = el.getBoundingClientRect()
+    // 区块顶部已滚过视口偏移线，则视为当前分类
+    if (rect.top - offset <= 0) {
       current = cat.id
     } else {
       break
@@ -253,6 +248,7 @@ function checkMobile() {
 onMounted(async () => {
   checkMobile()
   window.addEventListener('resize', checkMobile)
+  window.addEventListener('scroll', onScroll, { passive: true })
   try {
     const { data } = await getNavData()
     siteConfig.value = data.config || { title: '视觉志·导航网' }
@@ -264,6 +260,7 @@ onMounted(async () => {
 
 onUnmounted(() => {
   window.removeEventListener('resize', checkMobile)
+  window.removeEventListener('scroll', onScroll)
 })
 </script>
 
@@ -520,18 +517,16 @@ onUnmounted(() => {
   color: #4F6BED;
 }
 
-/* 内容区（滚动容器） */
+/* 内容区 */
 .content-body {
   flex: 1;
   padding: 20px 24px;
-  overflow-y: auto;
-  height: calc(100vh - 56px - 49px);
 }
 
 /* 分类区块 */
 .cat-section {
   margin-bottom: 24px;
-  scroll-margin-top: 16px;
+  scroll-margin-top: 72px;
 }
 
 .cat-section-header {
@@ -715,7 +710,6 @@ onUnmounted(() => {
 
   .content-body {
     padding: 16px;
-    height: calc(100vh - 56px - 49px);
   }
 }
 
