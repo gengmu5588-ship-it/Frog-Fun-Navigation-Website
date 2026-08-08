@@ -1,6 +1,7 @@
 <template>
   <div class="admin-layout">
-    <el-container>
+    <el-container direction="vertical">
+      <el-container>
       <el-aside width="220px" class="admin-aside">
         <div class="aside-header">
           <h2>后台管理</h2>
@@ -42,6 +43,10 @@
       <el-main class="admin-main">
         <router-view />
       </el-main>
+      </el-container>
+      <el-footer height="44" class="admin-footer">
+        Copyright © 2026 视觉志导航. 浙ICP备2026038793号-1. Design by TRAE ide
+      </el-footer>
     </el-container>
   </div>
 </template>
@@ -138,5 +143,14 @@ function handleLogout() {
 
 :deep(.el-menu-item.is-active) {
   background: rgba(102,126,234,0.15) !important;
+}
+
+.admin-footer {
+  background: #fff;
+  color: #8F959E;
+  font-size: 12px;
+  text-align: center;
+  line-height: 44px;
+  border-top: 1px solid #E8ECF0;
 }
 </style>

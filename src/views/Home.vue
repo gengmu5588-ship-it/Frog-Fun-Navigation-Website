@@ -154,7 +154,7 @@
 
       <!-- 底部 -->
       <footer class="main-footer">
-        <p>© 2024 {{ siteConfig.title }}</p>
+        <p>Copyright © 2026 视觉志导航. 浙ICP备2026038793号-1. Design by TRAE ide</p>
       </footer>
     </div>
   </div>

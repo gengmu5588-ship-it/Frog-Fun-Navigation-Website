@@ -41,6 +41,7 @@
       </el-form>
       <div class="login-footer">
         <a href="/">返回首页</a>
+        <p class="copy">Copyright © 2026 视觉志导航. 浙ICP备2026038793号-1</p>
       </div>
     </div>
   </div>
@@ -132,5 +133,11 @@ async function handleLogin() {
 
 .login-footer a:hover {
   color: #4F6BED;
+}
+
+.login-footer .copy {
+  margin: 8px 0 0;
+  font-size: 11px;
+  color: #B0B4BD;
 }
 </style>
