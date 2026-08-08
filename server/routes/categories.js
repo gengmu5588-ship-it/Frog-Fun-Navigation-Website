@@ -2,11 +2,39 @@ import { Router } from 'express'
 
 const router = Router()
 
-// 获取所有分类
+// 获取所有分类（含子分类嵌套）
 router.get('/', (req, res) => {
   const db = req.app.get('db')
-  const categories = db.prepare('SELECT * FROM categories ORDER BY sort_order ASC, id ASC').all()
-  res.json(categories)
+  const rows = db.prepare(`
+    SELECT c.id, c.name, c.icon, c.sort_order,
+           s.id as sub_id, s.name as sub_name, s.sort_order as sub_sort
+    FROM categories c
+    LEFT JOIN subcategories s ON s.category_id = c.id
+    ORDER BY c.sort_order ASC, c.id, s.sort_order ASC, s.id
+  `).all()
+
+  const map = {}
+  const list = []
+  for (const row of rows) {
+    if (!map[row.id]) {
+      map[row.id] = {
+        id: row.id,
+        name: row.name,
+        icon: row.icon,
+        sort_order: row.sort_order,
+        subcategories: []
+      }
+      list.push(map[row.id])
+    }
+    if (row.sub_id) {
+      map[row.id].subcategories.push({
+        id: row.sub_id,
+        name: row.sub_name,
+        sort_order: row.sub_sort
+      })
+    }
+  }
+  res.json(list)
 })
 
 // 获取单个分类
