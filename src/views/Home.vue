@@ -16,43 +16,30 @@
 
       <!-- 分类导航列表 -->
       <nav class="sidebar-nav">
+        <!-- 首页项（全部视图入口） -->
+        <div
+          class="nav-category nav-home-item"
+          :class="{ active: activeCategory === 'home' }"
+          @click="goHome"
+        >
+          <span class="cat-icon">🏠</span>
+          <span class="cat-name" v-show="!sidebarCollapsed || isMobile">首页</span>
+        </div>
+
+        <!-- 分类列表 -->
         <div
           v-for="cat in categories"
           :key="cat.id"
           class="nav-group"
         >
-          <!-- 分类项 -->
           <div
             class="nav-category"
             :class="{ active: activeCategory === cat.id }"
-            @click="selectCategory(cat.id)"
+            @click="scrollToCategory(cat.id)"
           >
             <span class="cat-icon">{{ cat.icon }}</span>
             <span class="cat-name" v-show="!sidebarCollapsed || isMobile">{{ cat.name }}</span>
-            <span
-              v-if="cat.subcategories?.length && (!sidebarCollapsed || isMobile)"
-              class="expand-arrow"
-              :class="{ expanded: activeCategory === cat.id }"
-            >›</span>
           </div>
-
-          <!-- 子分类列表 -->
-          <transition name="slide">
-            <div
-              v-if="activeCategory === cat.id && cat.subcategories?.length && (!sidebarCollapsed || isMobile)"
-              class="nav-subcategories"
-            >
-              <div
-                v-for="sub in cat.subcategories"
-                :key="sub.id"
-                class="nav-sub"
-                :class="{ active: activeSubcategory === sub.id }"
-                @click.stop="activeSubcategory = sub.id"
-              >
-                {{ sub.name }}
-              </div>
-            </div>
-          </transition>
         </div>
       </nav>
 
@@ -81,49 +68,88 @@
         </button>
         <div class="breadcrumb">
           <span class="current-cat">{{ currentCategoryName }}</span>
-          <span v-if="currentSubcategoryName" class="sep">/</span>
-          <span v-if="currentSubcategoryName" class="current-sub">{{ currentSubcategoryName }}</span>
         </div>
         <button class="collapse-btn" @click="sidebarCollapsed = !sidebarCollapsed">
           «
         </button>
       </header>
 
-      <!-- 子分类标签栏 -->
-      <div class="sub-tabs-bar" v-if="currentSubcategories.length > 1">
-        <div
-          v-for="sub in currentSubcategories"
-          :key="sub.id"
-          class="sub-tab"
-          :class="{ active: activeSubcategory === sub.id }"
-          @click="activeSubcategory = sub.id"
-        >
-          {{ sub.name }}
-        </div>
-      </div>
+      <!-- 全部链接视图（按分类分区） -->
+      <main class="content-body" ref="contentBodyRef" @scroll="onScroll">
+        <div v-if="!categoriesWithLinks.length" class="empty-state">暂无数据</div>
 
-      <!-- 链接卡片网格 -->
-      <main class="content-body">
-        <div class="links-grid" v-if="currentLinks.length">
-          <a
-            v-for="link in currentLinks"
-            :key="link.id"
-            :href="link.url"
-            target="_blank"
-            rel="noopener noreferrer"
-            class="link-card"
+        <template v-else>
+          <div
+            v-for="cat in categoriesWithLinks"
+            :key="cat.id"
+            :id="`cat-section-${cat.id}`"
+            class="cat-section"
           >
-            <div class="link-icon">
-              <img v-if="link.icon" :src="link.icon" :alt="link.title" @error="handleIconError" />
-              <span v-else class="default-icon">{{ link.title?.charAt(0) }}</span>
+            <div class="cat-section-header">
+              <span class="cat-section-icon">{{ cat.icon }}</span>
+              <span class="cat-section-name">{{ cat.name }}</span>
+              <span class="cat-section-count" v-if="cat.allLinks.length">{{ cat.allLinks.length }} 个</span>
             </div>
-            <div class="link-info">
-              <div class="link-title">{{ link.title }}</div>
-              <div class="link-desc">{{ link.description }}</div>
+
+            <!-- 只有一个子分类：直接平铺 -->
+            <div
+              v-if="cat.subcategories.length <= 1"
+              class="links-grid"
+              v-show="cat.allLinks.length"
+            >
+              <a
+                v-for="link in cat.allLinks"
+                :key="link.id"
+                :href="link.url"
+                target="_blank"
+                rel="noopener noreferrer"
+                class="link-card"
+              >
+                <div class="link-icon">
+                  <img v-if="link.icon" :src="link.icon" :alt="link.title" @error="handleIconError" />
+                  <span v-else class="default-icon">{{ link.title?.charAt(0) }}</span>
+                </div>
+                <div class="link-info">
+                  <div class="link-title">{{ link.title }}</div>
+                  <div class="link-desc">{{ link.description }}</div>
+                </div>
+              </a>
             </div>
-          </a>
-        </div>
-        <div v-else class="empty-state">暂无链接</div>
+
+            <!-- 多个子分类：按子分类分组 -->
+            <template v-else>
+              <div
+                v-for="sub in cat.subcategories"
+                :key="sub.id"
+                class="sub-group"
+                v-show="sub.links && sub.links.length"
+              >
+                <div class="sub-group-title">{{ sub.name }}</div>
+                <div class="links-grid" v-if="sub.links && sub.links.length">
+                  <a
+                    v-for="link in sub.links"
+                    :key="link.id"
+                    :href="link.url"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    class="link-card"
+                  >
+                    <div class="link-icon">
+                      <img v-if="link.icon" :src="link.icon" :alt="link.title" @error="handleIconError" />
+                      <span v-else class="default-icon">{{ link.title?.charAt(0) }}</span>
+                    </div>
+                    <div class="link-info">
+                      <div class="link-title">{{ link.title }}</div>
+                      <div class="link-desc">{{ link.description }}</div>
+                    </div>
+                  </a>
+                </div>
+              </div>
+            </template>
+
+            <div v-if="!cat.allLinks.length" class="empty-state empty-in-section">暂无链接</div>
+          </div>
+        </template>
       </main>
 
       <!-- 底部 -->
@@ -140,39 +166,77 @@ import { getNavData } from '../api'
 
 const siteConfig = ref({ title: '视觉志·导航网' })
 const categories = ref([])
-const activeCategory = ref(null)
-const activeSubcategory = ref(null)
+// 'home' 表示首页全部视图；否则为分类 id（scroll-spy 高亮项）
+const activeCategory = ref('home')
 const sidebarCollapsed = ref(false)
 const mobileMenuOpen = ref(false)
 const isMobile = ref(false)
+const contentBodyRef = ref(null)
+// 标记程序触发的滚动，避免 scroll-spy 抢占
+const isProgrammaticScroll = ref(false)
 
-const currentSubcategories = computed(() => {
-  const cat = categories.value.find(c => c.id === activeCategory.value)
-  return cat ? cat.subcategories : []
-})
-
-const currentLinks = computed(() => {
-  const sub = currentSubcategories.value.find(s => s.id === activeSubcategory.value)
-  return sub ? sub.links : []
+// 计算每个分类下的全部链接（合并子分类）
+const categoriesWithLinks = computed(() => {
+  return categories.value.map(cat => {
+    const subs = cat.subcategories || []
+    const allLinks = subs.flatMap(sub => sub.links || [])
+    return { ...cat, subcategories: subs, allLinks }
+  })
 })
 
 const currentCategoryName = computed(() => {
+  if (activeCategory.value === 'home') return '首页'
   const cat = categories.value.find(c => c.id === activeCategory.value)
   return cat ? cat.name : ''
 })
 
-const currentSubcategoryName = computed(() => {
-  const sub = currentSubcategories.value.find(s => s.id === activeSubcategory.value)
-  return sub ? sub.name : ''
-})
-
-function selectCategory(id) {
-  activeCategory.value = id
-  const subs = categories.value.find(c => c.id === id)?.subcategories || []
-  activeSubcategory.value = subs.length ? subs[0].id : null
-  if (isMobile.value) {
-    mobileMenuOpen.value = false
+// 回到首页（全部视图顶部）
+function goHome() {
+  activeCategory.value = 'home'
+  if (contentBodyRef.value) {
+    isProgrammaticScroll.value = true
+    contentBodyRef.value.scrollTo({ top: 0, behavior: 'smooth' })
+    setTimeout(() => { isProgrammaticScroll.value = false }, 500)
   }
+  if (isMobile.value) mobileMenuOpen.value = false
+}
+
+// 平滑滚动到指定分类区块
+function scrollToCategory(catId) {
+  activeCategory.value = catId
+  const el = document.getElementById(`cat-section-${catId}`)
+  if (el && contentBodyRef.value) {
+    isProgrammaticScroll.value = true
+    const top = el.offsetTop - 16
+    contentBodyRef.value.scrollTo({ top, behavior: 'smooth' })
+    setTimeout(() => { isProgrammaticScroll.value = false }, 600)
+  }
+  if (isMobile.value) mobileMenuOpen.value = false
+}
+
+// 滚动监听：自动高亮当前所属分类
+function onScroll() {
+  if (isProgrammaticScroll.value) return
+  const container = contentBodyRef.value
+  if (!container) return
+  const scrollTop = container.scrollTop
+  // 接近顶部时高亮"首页"
+  if (scrollTop < 40) {
+    activeCategory.value = 'home'
+    return
+  }
+  const offset = 80
+  let current = 'home'
+  for (const cat of categoriesWithLinks.value) {
+    const el = document.getElementById(`cat-section-${cat.id}`)
+    if (!el) continue
+    if (el.offsetTop - offset <= scrollTop) {
+      current = cat.id
+    } else {
+      break
+    }
+  }
+  activeCategory.value = current
 }
 
 function handleIconError(e) {
@@ -193,9 +257,6 @@ onMounted(async () => {
     const { data } = await getNavData()
     siteConfig.value = data.config || { title: '视觉志·导航网' }
     categories.value = data.categories || []
-    if (categories.value.length) {
-      selectCategory(categories.value[0].id)
-    }
   } catch (e) {
     console.error('加载数据失败', e)
   }
@@ -281,6 +342,17 @@ onUnmounted(() => {
   margin-bottom: 2px;
 }
 
+/* 首页项特殊样式：与分类之间加分隔线 */
+.nav-home-item {
+  margin-bottom: 8px;
+  border-bottom: 1px solid #E8ECF0;
+  padding-bottom: 10px;
+}
+
+.sidebar.collapsed .nav-home-item {
+  padding-bottom: 10px;
+}
+
 .nav-category {
   display: flex;
   align-items: center;
@@ -337,56 +409,6 @@ onUnmounted(() => {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-}
-
-.expand-arrow {
-  font-size: 16px;
-  transition: transform 0.2s;
-  color: #8F959E;
-}
-
-.expand-arrow.expanded {
-  transform: rotate(90deg);
-}
-
-/* 子分类 */
-.nav-subcategories {
-  overflow: hidden;
-}
-
-.nav-sub {
-  padding: 7px 20px 7px 54px;
-  font-size: 13px;
-  color: #8F959E;
-  cursor: pointer;
-  transition: all 0.2s;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.nav-sub:hover {
-  color: #4F6BED;
-  background: #F8F9FA;
-}
-
-.nav-sub.active {
-  color: #4F6BED;
-  background: #EEF0FF;
-  font-weight: 500;
-}
-
-/* 子分类展开/折叠动画 */
-.slide-enter-active,
-.slide-leave-active {
-  transition: all 0.25s ease;
-  max-height: 500px;
-}
-
-.slide-enter-from,
-.slide-leave-to {
-  max-height: 0;
-  opacity: 0;
 }
 
 /* 侧边栏底部 */
@@ -481,14 +503,6 @@ onUnmounted(() => {
   font-weight: 500;
 }
 
-.sep {
-  color: #D0D3D6;
-}
-
-.current-sub {
-  color: #646A73;
-}
-
 .collapse-btn {
   margin-left: auto;
   background: none;
@@ -506,40 +520,62 @@ onUnmounted(() => {
   color: #4F6BED;
 }
 
-/* 子分类标签栏 */
-.sub-tabs-bar {
-  display: flex;
-  gap: 6px;
-  padding: 16px 24px 0;
-  flex-wrap: wrap;
-}
-
-.sub-tab {
-  padding: 5px 14px;
-  border-radius: 6px;
-  font-size: 13px;
-  color: #646A73;
-  cursor: pointer;
-  transition: all 0.2s;
-  background: #FFFFFF;
-  border: 1px solid #E8ECF0;
-}
-
-.sub-tab:hover {
-  border-color: #4F6BED;
-  color: #4F6BED;
-}
-
-.sub-tab.active {
-  background: #4F6BED;
-  color: #FFFFFF;
-  border-color: #4F6BED;
-}
-
-/* 内容区 */
+/* 内容区（滚动容器） */
 .content-body {
   flex: 1;
   padding: 20px 24px;
+  overflow-y: auto;
+  height: calc(100vh - 56px - 49px);
+}
+
+/* 分类区块 */
+.cat-section {
+  margin-bottom: 24px;
+  scroll-margin-top: 16px;
+}
+
+.cat-section-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  margin-bottom: 12px;
+  background: #FFFFFF;
+  border-radius: 8px;
+  border: 1px solid #E8ECF0;
+  border-left: 3px solid #4F6BED;
+}
+
+.cat-section-icon {
+  font-size: 18px;
+}
+
+.cat-section-name {
+  font-size: 15px;
+  font-weight: 600;
+  color: #1F2329;
+  flex: 1;
+}
+
+.cat-section-count {
+  font-size: 12px;
+  color: #8F959E;
+}
+
+/* 子分类分组 */
+.sub-group {
+  margin-bottom: 16px;
+}
+
+.sub-group-title {
+  font-size: 13px;
+  font-weight: 500;
+  color: #646A73;
+  padding: 4px 4px 8px;
+  border-left: 2px solid #E8ECF0;
+  padding-left: 8px;
+  margin-left: 4px;
+  margin-bottom: 8px;
 }
 
 /* 链接卡片网格 */
@@ -622,6 +658,10 @@ onUnmounted(() => {
   font-size: 14px;
 }
 
+.empty-in-section {
+  padding: 24px;
+}
+
 /* 底部 */
 .main-footer {
   padding: 16px 24px;
@@ -675,6 +715,7 @@ onUnmounted(() => {
 
   .content-body {
     padding: 16px;
+    height: calc(100vh - 56px - 49px);
   }
 }
 
