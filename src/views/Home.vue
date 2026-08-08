@@ -1,5 +1,5 @@
 <template>
-  <div class="nav-home">
+  <div class="nav-home" :class="{ dark: isDark }">
     <!-- 侧边栏 -->
     <aside
       class="sidebar"
@@ -69,6 +69,9 @@
         <div class="breadcrumb">
           <span class="current-cat">{{ currentCategoryName }}</span>
         </div>
+        <button class="theme-toggle" @click="toggleTheme" :title="isDark ? '切换到亮色' : '切换到暗色'">
+          {{ isDark ? '☀' : '☾' }}
+        </button>
         <button class="collapse-btn" @click="sidebarCollapsed = !sidebarCollapsed">
           «
         </button>
@@ -173,6 +176,15 @@ const mobileMenuOpen = ref(false)
 const isMobile = ref(false)
 // 标记程序触发的滚动，避免 scroll-spy 抢占
 const isProgrammaticScroll = ref(false)
+// 暗色模式（localStorage 持久化）
+const isDark = ref(false)
+
+function toggleTheme() {
+  isDark.value = !isDark.value
+  try {
+    localStorage.setItem('nav_theme', isDark.value ? 'dark' : 'light')
+  } catch (e) {}
+}
 
 // 计算每个分类下的全部链接（合并子分类）
 const categoriesWithLinks = computed(() => {
@@ -249,6 +261,14 @@ onMounted(async () => {
   checkMobile()
   window.addEventListener('resize', checkMobile)
   window.addEventListener('scroll', onScroll, { passive: true })
+  // 读取主题偏好
+  try {
+    const saved = localStorage.getItem('nav_theme')
+    if (saved === 'dark') isDark.value = true
+    else if (!saved && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+      isDark.value = true
+    }
+  } catch (e) {}
   try {
     const { data } = await getNavData()
     siteConfig.value = data.config || { title: '视觉志·导航网' }
@@ -266,8 +286,42 @@ onUnmounted(() => {
 
 <style scoped>
 .nav-home {
+  /* 亮色主题变量 */
+  --bg-page: #F5F6F8;
+  --bg-surface: #FFFFFF;
+  --bg-surface-2: #FAFBFC;
+  --bg-hover: #F0F1F3;
+  --bg-active: #F0F2FF;
+  --bg-icon: #F0F2FF;
+  --border: #E8ECF0;
+  --text-strong: #1F2329;
+  --text-base: #646A73;
+  --text-muted: #8F959E;
+  --accent: #4F6BED;
+  --scrollbar: #D0D3D6;
+  --shadow: rgba(79, 107, 237, 0.1);
+  --overlay: rgba(0, 0, 0, 0.3);
   min-height: 100vh;
-  background: #F5F6F8;
+  background: var(--bg-page);
+  transition: background 0.3s;
+}
+
+/* 暗色主题变量覆盖 */
+.nav-home.dark {
+  --bg-page: #14161A;
+  --bg-surface: #1C1F26;
+  --bg-surface-2: #181B21;
+  --bg-hover: #262A33;
+  --bg-active: #2A2F3D;
+  --bg-icon: #2A3142;
+  --border: #2A2E37;
+  --text-strong: #E6E8EC;
+  --text-base: #A8AEB8;
+  --text-muted: #7A808C;
+  --accent: #7B8DFF;
+  --scrollbar: #3A3F4A;
+  --shadow: rgba(0, 0, 0, 0.3);
+  --overlay: rgba(0, 0, 0, 0.5);
 }
 
 /* ========== 侧边栏 ========== */
@@ -277,12 +331,12 @@ onUnmounted(() => {
   top: 0;
   bottom: 0;
   width: 240px;
-  background: #FAFBFC;
-  border-right: 1px solid #E8ECF0;
+  background: var(--bg-surface-2);
+  border-right: 1px solid var(--border);
   display: flex;
   flex-direction: column;
   z-index: 200;
-  transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: width 0.3s cubic-bezier(0.4, 0, 0.2, 1), background 0.3s;
   overflow: hidden;
 }
 
@@ -297,7 +351,7 @@ onUnmounted(() => {
   align-items: center;
   padding: 0 20px;
   gap: 12px;
-  border-bottom: 1px solid #E8ECF0;
+  border-bottom: 1px solid var(--border);
   flex-shrink: 0;
 }
 
@@ -314,7 +368,7 @@ onUnmounted(() => {
 .logo-text {
   font-size: 16px;
   font-weight: 600;
-  color: #1F2329;
+  color: var(--text-strong);
   white-space: nowrap;
   overflow: hidden;
 }
@@ -331,7 +385,7 @@ onUnmounted(() => {
 }
 
 .sidebar-nav::-webkit-scrollbar-thumb {
-  background: #D0D3D6;
+  background: var(--scrollbar);
   border-radius: 2px;
 }
 
@@ -342,7 +396,7 @@ onUnmounted(() => {
 /* 首页项特殊样式：与分类之间加分隔线 */
 .nav-home-item {
   margin-bottom: 8px;
-  border-bottom: 1px solid #E8ECF0;
+  border-bottom: 1px solid var(--border);
   padding-bottom: 10px;
 }
 
@@ -357,7 +411,7 @@ onUnmounted(() => {
   cursor: pointer;
   transition: all 0.2s;
   position: relative;
-  color: #646A73;
+  color: var(--text-base);
   font-size: 14px;
   gap: 10px;
   user-select: none;
@@ -381,17 +435,17 @@ onUnmounted(() => {
 }
 
 .nav-category:hover {
-  background: #F0F1F3;
-  color: #1F2329;
+  background: var(--bg-hover);
+  color: var(--text-strong);
 }
 
 .nav-category.active {
-  background: #F0F2FF;
-  color: #4F6BED;
+  background: var(--bg-active);
+  color: var(--accent);
 }
 
 .nav-category.active::before {
-  background: #4F6BED;
+  background: var(--accent);
 }
 
 .cat-icon {
@@ -410,7 +464,7 @@ onUnmounted(() => {
 
 /* 侧边栏底部 */
 .sidebar-footer {
-  border-top: 1px solid #E8ECF0;
+  border-top: 1px solid var(--border);
   padding: 12px 20px;
   flex-shrink: 0;
 }
@@ -424,14 +478,14 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   gap: 10px;
-  color: #8F959E;
+  color: var(--text-muted);
   text-decoration: none;
   font-size: 13px;
   transition: color 0.2s;
 }
 
 .admin-link:hover {
-  color: #4F6BED;
+  color: var(--accent);
 }
 
 .sidebar.collapsed .admin-link {
@@ -459,8 +513,8 @@ onUnmounted(() => {
 /* 顶部栏 */
 .main-header {
   height: 56px;
-  background: #FFFFFF;
-  border-bottom: 1px solid #E8ECF0;
+  background: var(--bg-surface);
+  border-bottom: 1px solid var(--border);
   display: flex;
   align-items: center;
   padding: 0 24px;
@@ -468,6 +522,7 @@ onUnmounted(() => {
   position: sticky;
   top: 0;
   z-index: 100;
+  transition: background 0.3s;
 }
 
 .menu-toggle {
@@ -484,7 +539,7 @@ onUnmounted(() => {
   display: block;
   width: 18px;
   height: 2px;
-  background: #1F2329;
+  background: var(--text-strong);
   border-radius: 1px;
 }
 
@@ -496,25 +551,47 @@ onUnmounted(() => {
 }
 
 .current-cat {
-  color: #1F2329;
+  color: var(--text-strong);
   font-weight: 500;
 }
 
-.collapse-btn {
+/* 主题切换按钮 */
+.theme-toggle {
   margin-left: auto;
   background: none;
-  border: 1px solid #E8ECF0;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  width: 32px;
+  height: 32px;
+  cursor: pointer;
+  color: var(--text-muted);
+  font-size: 16px;
+  line-height: 1;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.theme-toggle:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.collapse-btn {
+  background: none;
+  border: 1px solid var(--border);
   border-radius: 6px;
   padding: 4px 10px;
   cursor: pointer;
-  color: #8F959E;
+  color: var(--text-muted);
   font-size: 14px;
   transition: all 0.2s;
 }
 
 .collapse-btn:hover {
-  border-color: #4F6BED;
-  color: #4F6BED;
+  border-color: var(--accent);
+  color: var(--accent);
 }
 
 /* 内容区 */
@@ -535,10 +612,11 @@ onUnmounted(() => {
   gap: 10px;
   padding: 8px 12px;
   margin-bottom: 12px;
-  background: #FFFFFF;
+  background: var(--bg-surface);
   border-radius: 8px;
-  border: 1px solid #E8ECF0;
-  border-left: 3px solid #4F6BED;
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--accent);
+  transition: background 0.3s;
 }
 
 .cat-section-icon {
@@ -548,13 +626,13 @@ onUnmounted(() => {
 .cat-section-name {
   font-size: 15px;
   font-weight: 600;
-  color: #1F2329;
+  color: var(--text-strong);
   flex: 1;
 }
 
 .cat-section-count {
   font-size: 12px;
-  color: #8F959E;
+  color: var(--text-muted);
 }
 
 /* 子分类分组 */
@@ -565,9 +643,9 @@ onUnmounted(() => {
 .sub-group-title {
   font-size: 13px;
   font-weight: 500;
-  color: #646A73;
+  color: var(--text-base);
   padding: 4px 4px 8px;
-  border-left: 2px solid #E8ECF0;
+  border-left: 2px solid var(--border);
   padding-left: 8px;
   margin-left: 4px;
   margin-bottom: 8px;
@@ -585,17 +663,17 @@ onUnmounted(() => {
   align-items: center;
   gap: 12px;
   padding: 14px 16px;
-  background: #FFFFFF;
+  background: var(--bg-surface);
   border-radius: 10px;
   text-decoration: none;
-  color: #1F2329;
+  color: var(--text-strong);
   transition: all 0.2s;
-  border: 1px solid #E8ECF0;
+  border: 1px solid var(--border);
 }
 
 .link-card:hover {
-  border-color: #4F6BED;
-  box-shadow: 0 2px 12px rgba(79, 107, 237, 0.1);
+  border-color: var(--accent);
+  box-shadow: 0 2px 12px var(--shadow);
   transform: translateY(-1px);
 }
 
@@ -608,7 +686,7 @@ onUnmounted(() => {
   display: flex;
   align-items: center;
   justify-content: center;
-  background: #F0F2FF;
+  background: var(--bg-icon);
 }
 
 .link-icon img {
@@ -618,7 +696,7 @@ onUnmounted(() => {
 }
 
 .default-icon {
-  color: #4F6BED;
+  color: var(--accent);
   font-size: 16px;
   font-weight: 600;
 }
@@ -639,7 +717,7 @@ onUnmounted(() => {
 
 .link-desc {
   font-size: 12px;
-  color: #8F959E;
+  color: var(--text-muted);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -649,7 +727,7 @@ onUnmounted(() => {
 .empty-state {
   text-align: center;
   padding: 60px 20px;
-  color: #8F959E;
+  color: var(--text-muted);
   font-size: 14px;
 }
 
@@ -661,16 +739,16 @@ onUnmounted(() => {
 .main-footer {
   padding: 16px 24px;
   text-align: center;
-  color: #8F959E;
+  color: var(--text-muted);
   font-size: 12px;
-  border-top: 1px solid #E8ECF0;
+  border-top: 1px solid var(--border);
 }
 
 /* ========== 移动端遮罩 ========== */
 .sidebar-overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0, 0, 0, 0.3);
+  background: var(--overlay);
   z-index: 190;
 }
 
