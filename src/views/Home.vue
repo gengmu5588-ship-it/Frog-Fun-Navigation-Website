@@ -39,7 +39,31 @@
           >
             <span class="cat-icon">{{ cat.icon }}</span>
             <span class="cat-name" v-show="!sidebarCollapsed || isMobile">{{ cat.name }}</span>
+            <span
+              v-if="cat.subcategories?.length > 1 && (!sidebarCollapsed || isMobile)"
+              class="expand-arrow"
+              :class="{ expanded: activeCategory === cat.id }"
+            >›</span>
           </div>
+
+          <!-- 子分类列表（仅当前激活分类展开，缩进展示） -->
+          <transition name="slide">
+            <div
+              v-if="activeCategory === cat.id && cat.subcategories?.length > 1 && (!sidebarCollapsed || isMobile)"
+              class="nav-subcategories"
+            >
+              <div
+                v-for="sub in cat.subcategories"
+                :key="sub.id"
+                class="nav-sub"
+                :class="{ active: activeSubcategory === sub.id }"
+                v-show="sub.links && sub.links.length"
+                @click.stop="scrollToSubcategory(cat.id, sub.id)"
+              >
+                {{ sub.name }}
+              </div>
+            </div>
+          </transition>
         </div>
       </nav>
 
@@ -124,6 +148,7 @@
               <div
                 v-for="sub in cat.subcategories"
                 :key="sub.id"
+                :id="`sub-section-${sub.id}`"
                 class="sub-group"
                 v-show="sub.links && sub.links.length"
               >
@@ -171,6 +196,8 @@ const siteConfig = ref({ title: '视觉志·导航网' })
 const categories = ref([])
 // 'home' 表示首页全部视图；否则为分类 id（scroll-spy 高亮项）
 const activeCategory = ref('home')
+// 当前激活分类下的激活子分类（scroll-spy 高亮项）
+const activeSubcategory = ref(null)
 const sidebarCollapsed = ref(false)
 const mobileMenuOpen = ref(false)
 const isMobile = ref(false)
@@ -222,16 +249,31 @@ function scrollToCategory(catId) {
   if (isMobile.value) mobileMenuOpen.value = false
 }
 
-// 滚动监听：自动高亮当前所属分类（基于视口位置）
+// 平滑滚动到指定子分类区块
+function scrollToSubcategory(catId, subId) {
+  activeCategory.value = catId
+  activeSubcategory.value = subId
+  const el = document.getElementById(`sub-section-${subId}`)
+  if (el) {
+    isProgrammaticScroll.value = true
+    el.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    setTimeout(() => { isProgrammaticScroll.value = false }, 1500)
+  }
+  if (isMobile.value) mobileMenuOpen.value = false
+}
+
+// 滚动监听：自动高亮当前所属分类与子分类（基于视口位置）
 function onScroll() {
   if (isProgrammaticScroll.value) return
   // 接近顶部时高亮"首页"
   if (window.scrollY < 40) {
     activeCategory.value = 'home'
+    activeSubcategory.value = null
     return
   }
   const offset = 90 // 顶部 header(56) + 间距
   let current = 'home'
+  let currentSub = null
   for (const cat of categoriesWithLinks.value) {
     const el = document.getElementById(`cat-section-${cat.id}`)
     if (!el) continue
@@ -239,11 +281,26 @@ function onScroll() {
     // 区块顶部已滚过视口偏移线，则视为当前分类
     if (rect.top - offset <= 0) {
       current = cat.id
+      // 在当前分类内进一步定位子分类
+      if (cat.subcategories.length > 1) {
+        for (const sub of cat.subcategories) {
+          if (!sub.links || !sub.links.length) continue
+          const subEl = document.getElementById(`sub-section-${sub.id}`)
+          if (!subEl) continue
+          const subRect = subEl.getBoundingClientRect()
+          if (subRect.top - offset <= 0) {
+            currentSub = sub.id
+          } else {
+            break
+          }
+        }
+      }
     } else {
       break
     }
   }
   activeCategory.value = current
+  activeSubcategory.value = currentSub
 }
 
 function handleIconError(e) {
@@ -460,6 +517,75 @@ onUnmounted(() => {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+/* 展开箭头 */
+.expand-arrow {
+  font-size: 16px;
+  color: var(--text-muted);
+  transition: transform 0.25s ease;
+  transform: rotate(0deg);
+  margin-left: auto;
+  flex-shrink: 0;
+  line-height: 1;
+}
+
+.expand-arrow.expanded {
+  transform: rotate(90deg);
+  color: var(--accent);
+}
+
+/* 子分类列表容器（缩进展示） */
+.nav-subcategories {
+  padding: 4px 0 6px 34px;
+  margin-bottom: 4px;
+}
+
+/* 子分类单项 */
+.nav-sub {
+  padding: 6px 12px;
+  font-size: 13px;
+  color: var(--text-base);
+  cursor: pointer;
+  border-radius: 6px;
+  border-left: 2px solid transparent;
+  margin-left: 2px;
+  transition: all 0.2s;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.nav-sub:hover {
+  color: var(--text-strong);
+  background: var(--bg-hover);
+}
+
+.nav-sub.active {
+  color: var(--accent);
+  border-left-color: var(--accent);
+  background: var(--bg-active);
+  font-weight: 500;
+}
+
+/* 子分类展开/收起动画 */
+.slide-enter-active,
+.slide-leave-active {
+  transition: all 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+  overflow: hidden;
+}
+
+.slide-enter-from,
+.slide-leave-to {
+  opacity: 0;
+  max-height: 0;
+  transform: translateY(-4px);
+}
+
+.slide-enter-to,
+.slide-leave-from {
+  opacity: 1;
+  max-height: 600px;
 }
 
 /* 侧边栏底部 */
