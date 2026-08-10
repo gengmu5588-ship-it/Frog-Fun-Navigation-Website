@@ -142,7 +142,7 @@
                     class="link-card"
                   >
                     <div class="link-icon">
-                      <img v-if="link.icon" :src="link.icon" :alt="link.title" @error="handleIconError" />
+                      <img v-if="link.icon" :src="link.icon" :alt="link.title" referrerpolicy="no-referrer" @error="handleIconError" />
                       <span v-else class="default-icon">{{ link.title?.charAt(0) }}</span>
                     </div>
                     <div class="link-info">
@@ -174,7 +174,7 @@
                         class="link-card"
                       >
                         <div class="link-icon">
-                          <img v-if="link.icon" :src="link.icon" :alt="link.title" @error="handleIconError" />
+                          <img v-if="link.icon" :src="link.icon" :alt="link.title" referrerpolicy="no-referrer" @error="handleIconError" />
                           <span v-else class="default-icon">{{ link.title?.charAt(0) }}</span>
                         </div>
                         <div class="link-info">
